@@ -1,11 +1,37 @@
 import { createClient } from "@sanity/client";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// Load .env.local for local usage
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = resolve(__dirname, "../.env.local");
+try {
+  const envFile = readFileSync(envPath, "utf-8");
+  for (const line of envFile.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const [key, ...rest] = trimmed.split("=");
+    if (key && rest.length) process.env[key.trim()] = rest.join("=").trim();
+  }
+} catch {
+  // .env.local not present — rely on environment variables already set
+}
+
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
+const token = process.env.SANITY_API_TOKEN;
+
+if (!projectId || !dataset || !token) {
+  console.error("Missing required env vars: NEXT_PUBLIC_SANITY_PROJECT_ID, NEXT_PUBLIC_SANITY_DATASET, SANITY_API_TOKEN");
+  process.exit(1);
+}
 
 const client = createClient({
-  projectId: "cz7azw4n",
-  dataset: "e-production",
+  projectId,
+  dataset,
   apiVersion: "2024-01-01",
-  token:
-    "skuiWRkDwVeYST5V4HG2R6I0WBNnlqUrAl6ApoV9eIeRDWWgB2zzy4aPUS21PAMHGrRLZfDn7F2wdCyyk1o0yIc3Za5lUxn5AMtVFarXYAJLzDRT5fv0sbPmuDklGoBw1CNELZB4PCUDOIPAgSSsgAclh636AzXvf4Z3Ex3xz0O62an8nXYX",
+  token,
   useCdn: false,
 });
 
