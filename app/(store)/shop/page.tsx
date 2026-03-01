@@ -72,7 +72,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         {/* Sidebar Filters */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
           <div className="sticky top-24">
-            <ProductFilters categories={categories} />
+            <Suspense fallback={null}>
+              <ProductFilters categories={categories} />
+            </Suspense>
           </div>
         </aside>
 
@@ -86,7 +88,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 Filters & Sort
               </summary>
               <div className="mt-3 p-4 rounded-xl border border-gray-200 bg-white">
-                <ProductFilters categories={categories} />
+                <Suspense fallback={null}>
+                  <ProductFilters categories={categories} />
+                </Suspense>
               </div>
             </details>
           </div>

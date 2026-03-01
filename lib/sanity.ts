@@ -5,7 +5,7 @@ type SanityImageSource = any;
 import type { Product, Category } from "@/types";
 
 export const sanityClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "placeholder",
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
   apiVersion: "2024-01-01",
   useCdn: true,
@@ -75,39 +75,55 @@ export async function getAllProducts(params?: {
 
   const query = `*[${filters.join(" && ")}] | order(${orderBy}) [${offset}...${offset + limit}] {${productFields}}`;
 
-  return sanityClient.fetch<Product[]>(query, {
-    category: params?.category ?? "",
-    minPrice: params?.minPrice ?? 0,
-    maxPrice: params?.maxPrice ?? 9999999,
-    q: params?.q ? `${params.q}*` : "",
-  });
+  try {
+    return await sanityClient.fetch<Product[]>(query, {
+      category: params?.category ?? "",
+      minPrice: params?.minPrice ?? 0,
+      maxPrice: params?.maxPrice ?? 9999999,
+      q: params?.q ? `${params.q}*` : "",
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  return sanityClient.fetch<Product>(
-    `*[_type == "product" && slug.current == $slug][0] {${productFields}}`,
-    { slug },
-    { next: { revalidate: 60 } }
-  );
+  try {
+    return await sanityClient.fetch<Product>(
+      `*[_type == "product" && slug.current == $slug][0] {${productFields}}`,
+      { slug },
+      { next: { revalidate: 60 } }
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
-  return sanityClient.fetch<Product[]>(
-    `*[_type == "product" && featured == true && inStock == true] | order(_createdAt desc) [0...$limit] {${productFields}}`,
-    { limit },
-    { next: { revalidate: 60 } }
-  );
+  try {
+    return await sanityClient.fetch<Product[]>(
+      `*[_type == "product" && featured == true && inStock == true] | order(_createdAt desc) [0...$limit] {${productFields}}`,
+      { limit },
+      { next: { revalidate: 60 } }
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getAllCategories(): Promise<Category[]> {
-  return sanityClient.fetch<Category[]>(
-    `*[_type == "category"] | order(order asc) {
-      _id, name, slug, description,
-      "image": image{..., "alt": alt}
-    }`,
-    {},
-    { next: { revalidate: 3600 } }
-  );
+  try {
+    return await sanityClient.fetch<Category[]>(
+      `*[_type == "category"] | order(order asc) {
+        _id, name, slug, description,
+        "image": image{..., "alt": alt}
+      }`,
+      {},
+      { next: { revalidate: 3600 } }
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getRelatedProducts(
@@ -115,10 +131,14 @@ export async function getRelatedProducts(
   categoryId: string,
   limit = 4
 ): Promise<Product[]> {
-  return sanityClient.fetch<Product[]>(
-    `*[_type == "product" && _id != $productId && category._ref == $categoryId && inStock == true] | order(_createdAt desc) [0...$limit] {${productFields}}`,
-    { productId, categoryId, limit }
-  );
+  try {
+    return await sanityClient.fetch<Product[]>(
+      `*[_type == "product" && _id != $productId && category._ref == $categoryId && inStock == true] | order(_createdAt desc) [0...$limit] {${productFields}}`,
+      { productId, categoryId, limit }
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getProductCount(params?: {
@@ -133,13 +153,17 @@ export async function getProductCount(params?: {
   if (params?.maxPrice !== undefined) filters.push(`price <= $maxPrice`);
   if (params?.q) filters.push(`name match $q`);
 
-  return sanityClient.fetch<number>(
-    `count(*[${filters.join(" && ")}])`,
-    {
-      category: params?.category ?? "",
-      minPrice: params?.minPrice ?? 0,
-      maxPrice: params?.maxPrice ?? 9999999,
-      q: params?.q ? `${params.q}*` : "",
-    }
-  );
+  try {
+    return await sanityClient.fetch<number>(
+      `count(*[${filters.join(" && ")}])`,
+      {
+        category: params?.category ?? "",
+        minPrice: params?.minPrice ?? 0,
+        maxPrice: params?.maxPrice ?? 9999999,
+        q: params?.q ? `${params.q}*` : "",
+      }
+    );
+  } catch {
+    return 0;
+  }
 }

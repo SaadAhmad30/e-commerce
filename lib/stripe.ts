@@ -1,6 +1,16 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+let _stripe: Stripe | null = null;
+
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    if (!_stripe) {
+      _stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+    }
+    const value = (_stripe as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === "function" ? value.bind(_stripe) : value;
+  },
+});
 
 export function formatAmountForStripe(amount: number): number {
   // amount is already in cents
